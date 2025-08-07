@@ -15,16 +15,18 @@ const posts = ref([]);
 const isLoading = ref(false);
 const selectedPost = ref({});
 const isSidebarActive = ref(false);
+const errorMessage = ref('');
 
 onMounted(async () => {
   isLoading.value = true;
+  errorMessage.value = '';
 
   try {
     const { data } = await getPostsByUserId(props.userId);
-
     posts.value = data;
   } catch (error) {
     console.error('Failed to load posts:', error);
+    errorMessage.value = 'Failed to load posts. Please try again later.';
   } finally {
     isLoading.value = false;
   }
@@ -43,7 +45,6 @@ const closeSidebar = () => {
 const handleDeletePost = async (postId) => {
   try {
     await removePost(postId);
-
     posts.value = posts.value.filter((post) => post.id !== postId);
     closeSidebar();
   } catch (error) {
@@ -54,9 +55,7 @@ const handleDeletePost = async (postId) => {
 const handleCreatePost = async (newPostData) => {
   try {
     const postData = { ...newPostData, userId: props.userId };
-
     const { data } = await createPost(postData);
-
     posts.value.push(data);
     selectedPost.value = data;
   } catch (error) {
@@ -67,15 +66,11 @@ const handleCreatePost = async (newPostData) => {
 const handleUpdatePost = async (updatedPost) => {
   try {
     const postData = { ...updatedPost, userId: props.userId };
-
     const { data } = await updatePost(updatedPost.id, postData);
-
     const index = posts.value.findIndex((post) => post.id === data.id);
-
     if (index !== -1) {
       posts.value[index] = data;
     }
-
     selectedPost.value = data;
   } catch (error) {
     console.error('Failed to update post:', error);
@@ -99,18 +94,18 @@ const isPostSelected = (post) => post.id === selectedPost.value.id;
       <div class="block">
         <div class="block is-flex is-justify-content-space-between">
           <p class="title">Posts</p>
-
           <button type="button" class="button is-link" @click="openSidebar()">Add New Post</button>
+        </div>
+
+        <div v-if="errorMessage" class="notification is-danger">
+          <p>{{ errorMessage }}</p>
         </div>
 
         <div class="is-flex is-justify-content-center is-align-items-center mt-2" v-if="isLoading">
           <AppLoader />
         </div>
 
-        <p
-          class="is-flex is-justify-content-center is-align-items-center mt-2"
-          v-else-if="posts.length === 0"
-        >
+        <p class="is-flex is-justify-content-center is-align-items-center mt-2" v-else-if="posts.length === 0 && !errorMessage">
           No posts yet
         </p>
 

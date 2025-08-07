@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import InputField from './InputField.vue';
 import TextAreaField from './TextAreaField.vue';
 
@@ -19,7 +19,7 @@ const formData = ref({
 
 const errors = ref({});
 
-const isEditing = () => Boolean(props.selectedPost.id);
+const isEditing = computed(() => Boolean(props.selectedPost.id));
 
 watch(
   () => props.selectedPost,
@@ -70,7 +70,7 @@ const handleSubmit = () => {
     body: formData.value.body.trim(),
   };
 
-  if (isEditing()) {
+  if (isEditing.value) {
     emit('updatePost', { ...props.selectedPost, ...postData });
   } else {
     emit('createPost', postData);
@@ -78,12 +78,12 @@ const handleSubmit = () => {
   }
 };
 
-const formTitle = () => (isEditing() ? 'Editing Post' : 'Create new post');
+const formTitle = computed(() => (isEditing.value ? 'Editing Post' : 'Create new post'));
 </script>
 
 <template>
   <div class="content">
-    <h2>{{ formTitle() }}</h2>
+    <h2>{{ formTitle }}</h2>
 
     <form @submit.prevent="handleSubmit" @reset="emit('closeForm')">
       <InputField

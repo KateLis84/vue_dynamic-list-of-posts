@@ -16,6 +16,7 @@ const formData = ref({
 });
 
 const errors = ref({});
+const isLoading = ref(false);
 
 const emailPattern = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
 
@@ -47,10 +48,12 @@ const validateForm = () => {
   return Object.keys(newErrors).length === 0;
 };
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (!validateForm()) {
     return;
   }
+
+  isLoading.value = true;
 
   const commentData = {
     name: formData.value.name.trim(),
@@ -58,12 +61,25 @@ const handleSubmit = () => {
     body: formData.value.body.trim(),
   };
 
-  emit('createComment', commentData);
+  try {
+    await emit('createComment', commentData);
+    formData.value.body = '';
+  } catch (error) {
+    console.error('Failed to create comment:', error);
+  } finally {
+    isLoading.value = false;
+  }
 };
+
+const handleReset = () => {
+  formData.value = { name: '', email: '', body: '' };
+  errors.value = {};
+};
+
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit" @reset="emit('closeForm')" novalidate>
+  <form @submit.prevent="handleSubmit" @reset="handleReset" novalidate>
     <InputField
       v-model="formData.name"
       input-name="commentAuthor"
@@ -87,7 +103,15 @@ const handleSubmit = () => {
 
     <div class="field is-grouped">
       <div class="control">
-        <button type="submit" class="button is-link">Save</button>
+        <button 
+          type="submit" 
+          class="button is-link" 
+          :class="{ 'is-loading': isLoading }" 
+          :disabled="isLoading"
+        >
+          <span v-if="isLoading">Saving...</span>
+          <span v-else>Save</span>
+        </button>
       </div>
 
       <div class="control">

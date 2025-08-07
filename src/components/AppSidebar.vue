@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { createComment, getCommentsByPostId, removeComment } from '@/api/comments';
 import AddPost from './AddPost.vue';
 import PostComment from './PostComment.vue';
@@ -23,7 +23,7 @@ const isLoadingComments = ref(false);
 const isCommentFormOpen = ref(false);
 const errorMessage = ref('');
 
-const hasPostId = () => Boolean(props.selectedPost.id);
+const hasPostId = computed(() => Boolean(props.selectedPost.id));
 
 const handleCreateComment = async (commentData) => {
   try {
@@ -32,7 +32,7 @@ const handleCreateComment = async (commentData) => {
     const { data: newComment } = await createComment(data);
 
     comments.value.push(newComment);
-    closeCommentForm();
+    formData.value.body = '';
   } catch (error) {
     console.error('Failed to create comment:', error);
     errorMessage.value = 'Something went wrong with creating comment!';
@@ -40,18 +40,23 @@ const handleCreateComment = async (commentData) => {
 };
 
 const handleDeleteComment = async (commentId) => {
+  const commentToDelete = comments.value.find((comment) => comment.id === commentId);
+
+  comments.value = comments.value.filter((comment) => comment.id !== commentId);
+
   try {
     await removeComment(commentId);
-
-    comments.value = comments.value.filter((comment) => comment.id !== commentId);
   } catch (error) {
     console.error('Failed to delete comment:', error);
     errorMessage.value = 'Something went wrong with deleting comment!';
+    if (commentToDelete) {
+      comments.value.push(commentToDelete);
+    }
   }
 };
 
 const closeForm = () => {
-  if (hasPostId()) {
+  if (hasPostId.value) {
     isEditingPost.value = false;
   } else {
     emit('closeSidebar');
@@ -94,11 +99,12 @@ watch(
 );
 </script>
 
+
 <template>
   <div class="tile is-parent box ml-5 Sidebar" :class="{ 'Sidebar--open': isActive }">
     <div class="tile is-child">
       <div class="content">
-        <template v-if="hasPostId() && !isEditingPost">
+        <template v-if="hasPostId && !isEditingPost">
           <PostPreview
             :selected-post="selectedPost"
             @delete-post="emit('deletePost', $event)"
@@ -154,6 +160,7 @@ watch(
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .Sidebar {
